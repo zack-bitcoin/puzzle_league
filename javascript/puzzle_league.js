@@ -222,6 +222,10 @@ function pause(board){
 }
 function clearscreen(c, ctx){
     ctx.clearRect(0,0,c.width,c.height);
+    ctx.beginPath();
+    ctx.rect(0,0,c.width,c.height);
+    ctx.fillStyle = '#444444';
+    ctx.fill();
 }
 function doit(c, ctx){
     board=empty_board()
