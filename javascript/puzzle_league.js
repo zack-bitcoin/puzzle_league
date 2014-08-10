@@ -22,7 +22,8 @@ var Keys = {
 39:false,
 40:false,
 90:false,
-80:false
+80:false,
+mouse:false
 }
 //function clone(o){JSON.parse(JSON.stringify(o));}
 var Keys_responded = {
@@ -32,8 +33,10 @@ var Keys_responded = {
 39:false,
 40:false,
 90:false,
-80:false
+80:false,
+mouse:false
 }
+var Mouse = {x:0, y:0}
 function handle_key(num, response){
     //so each time you press the button only gets handled once.
     if(Keys[num]){
@@ -45,25 +48,48 @@ function handle_key(num, response){
 	Keys_responded[num]=false;
     }
 }
+function click(board){
+    if(Keys.mouse){
+	if(!(Keys_responded.mouse)){
+	    Keys_responded.mouse=true;
+	    x=Math.floor(Mouse.x/50-1/2);
+	    a=Math.max(0, 1-(board.counter/(board.speed*3)));
+	    y=Math.floor(12-Mouse.y/50-a);
+	    //y=Math.floor((-(Mouse.y-550)/50)-a);
+	    console.log(Mouse);
+	    console.log(a);
+	    console.log(x);
+	    console.log(y);
+	    switcher(board, [x,y]);
+	}
+    }else{
+	Keys_responded.mouse=false;
+    }
+}
 function spacebar(board){
     handle_key(32, function(){
-	p=board.p;
-	c1=board.columns[p[0]]
-	c2=board.columns[p[0]+1]
-	b1=c1.length>p[1]
-	b2=c2.length>p[1]
-	if(b1 && b2){
-	    holder=c1[p[1]];
-	    c1[p[1]]=c2[p[1]];
-	    c2[p[1]]=holder;
-	}else if(b1){
-	    c2.push(c1[p[1]]);
-	    c1.splice(c1.indexOf(c1[p[1]]), 1);
-	}else if(b2){
-	    c1.push(c2[p[1]]);
-	    c2.splice(c2.indexOf(c2[p[1]]), 1);	 
-	}
+	switcher(board);
     });
+}
+function switcher(board, p){
+    if (typeof p === 'undefined'){
+	p=board.p;
+    }
+    c1=board.columns[p[0]]
+    c2=board.columns[p[0]+1]
+    b1=c1.length>p[1]
+    b2=c2.length>p[1]
+    if(b1 && b2){
+	holder=c1[p[1]];
+	c1[p[1]]=c2[p[1]];
+	c2[p[1]]=holder;
+    }else if(b1){
+	c2.push(c1[p[1]]);
+	c1.splice(c1.indexOf(c1[p[1]]), 1);
+    }else if(b2){
+	c1.push(c2[p[1]]);
+	c2.splice(c2.indexOf(c2[p[1]]), 1);	 
+    }
 }
 function right_arrow(board){
     handle_key(39, function(){
@@ -96,6 +122,7 @@ function add_row(board){
 function z_key(board){
     handle_key(90, function(){
 	add_row(board);
+	board.score+=1;
     });
 }
 function vertical_row(board){
@@ -115,14 +142,14 @@ function vertical_row(board){
 		f=col[i+4].type;
 		b4=a==f;}
 	    if (b1 && b2){
-		counter+=board.speed;
+		board.counter+=board.speed;
 		board.score+=1;
 		if(b3){ 
-		    counter+=board.speed;
+		    board.counter+=board.speed;
 		    board.score+=1;
 		    if (b4){
 			board.score+=1;
-			counter+=board.speed;
+			board.counter+=board.speed;
 			col.splice(i, 5)
 		    }else{
 			col.splice(i, 4)
@@ -156,17 +183,17 @@ function horizontal_row(board){
 		    b4=a==f;}
 		if (b1 && b2){
 		    board.score+=1;
-		    counter+=10;
+		    board.counter+=10;
 		    cols[c].splice(i, 1);
 		    cols[c+1].splice(i, 1);
 		    cols[c+2].splice(i, 1);
 		    if(b3){ 
 			board.score+=1;
-			counter+=10;
+			board.counter+=10;
 			cols[c+3].splice(i, 1);
 			if (b4){
 			    board.score+=1;
-			    counter+=10;
+			    board.counter+=10;
 			    cols[c+4].splice(i, 1);
 			    }
 		    }
@@ -184,11 +211,17 @@ function end_game(board){
     }
 }
 		
-var movement=[spacebar, right_arrow, up_arrow, left_arrow, down_arrow, z_key]
+var movement=[spacebar, right_arrow, up_arrow, left_arrow, down_arrow, z_key, click]
 document.addEventListener('keyup', function(event) {Keys[event.keyCode]=false;}, false)
 document.addEventListener('keydown', function(event) {
 //console.log('pressed key: ' +event.keyCode);
 Keys[event.keyCode]=true;}, false)
+c.addEventListener("mousedown", function(event){
+    Mouse.x=event.clientX,
+    Mouse.y=event.clientY,
+    Keys.mouse=true;}, false)
+c.addEventListener("mouseup", function(event){
+    Keys.mouse=false;}, false)
 
 function newblock(color){
     return {img:block_pics[color], type:color}
@@ -201,19 +234,21 @@ function empty_board(){
        p:[0,0],
        img:cursor,
        done:false,
-       speed:10,
+       speed:20,
        pause:false,
        score:0
       }
+    b.counter=b.speed*3
     add_row(b);
     add_row(b);
     add_row(b);
     b.p=[0,0];
     return b;
 }
-function draw(ctx, o){
+function draw(ctx, o, board){
     //console.log('o: ' +o)
-return ctx.drawImage(o.img, 50*o.p[0], 550-50*o.p[1]);}
+    a=Math.max(0, 1-(board.counter/(board.speed*3)));
+    return ctx.drawImage(o.img, 50*o.p[0], 550-50*(o.p[1]+a));}
 function pause(board){
     handle_key(80, function(){
 	clearscreen(c, ctx);
@@ -228,8 +263,7 @@ function clearscreen(c, ctx){
     ctx.fill();
 }
 function doit(c, ctx){
-    board=empty_board()
-    counter=3*board.speed;
+    board=empty_board();
     var refreshIntervalID = setInterval(function(){
 	if(board.done){
 	    console.log('clear');
@@ -238,25 +272,25 @@ function doit(c, ctx){
 		doit(c, ctx);
 	    }, 5000);
 	}
-	if(counter<0){
+	if(board.counter<0){
 	    board.speed*=.98;
-	    counter=3*board.speed;
+	    board.counter=3*board.speed;
 	    add_row(board);
 	}
 	clearscreen(c, ctx);
 	movement.map(function(f){f(board);});
 	if(!(board.pause)){
-	    counter-=1
-	    vertical_row(board, counter);
-	    horizontal_row(board, counter);
+	    board.counter-=1
+	    vertical_row(board);
+	    horizontal_row(board);
 	    board.columns.map(function(c){
 		c.map(function(r){
 		    n={img:r.img, p:[board.columns.indexOf(c), c.indexOf(r)]};
-		    draw(ctx, n);
+		    draw(ctx, n, board);
 		});
 	    });
 	}
-	draw(ctx, board);
+	draw(ctx, board, board);
 	end_game(board);
 	update_score(board);
 	pause(board, c, ctx);
