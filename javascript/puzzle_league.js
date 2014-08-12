@@ -54,7 +54,7 @@ function click(board){
 	    Keys_responded.mouse=true;
 	    x=Math.floor(Mouse.x/50-1/2);
 	    a=Math.max(0, 1-(board.counter/(board.speed*3)));
-	    y=Math.floor(12-Mouse.y/50-a);
+	    y=Math.floor(12.60-Mouse.y/50-a);
 	    //y=Math.floor((-(Mouse.y-550)/50)-a);
 	    console.log(Mouse);
 	    console.log(a);
@@ -117,12 +117,13 @@ function add_row(board){
 	t=block_types[n]
 	c.unshift(newblock(t));
     });
+    board.score+=1;
+    board.speed*=0.99;
     if(board.p[1]<11){board.p[1]+=1; }
 }
 function z_key(board){
     handle_key(90, function(){
 	add_row(board);
-	board.score+=1;
     });
 }
 function vertical_row(board){
@@ -212,16 +213,30 @@ function end_game(board){
 }
 		
 var movement=[spacebar, right_arrow, up_arrow, left_arrow, down_arrow, z_key, click]
+var add_lines = 0
+document.getElementById('speed_up').onclick = function() {
+    if(!(board.done)){
+	add_lines += 1;
+    }
+    //Keys[90]=true;
+    //setTimeout(function(){Keys[90]=false;}, 2000/15);
+};
 document.addEventListener('keyup', function(event) {Keys[event.keyCode]=false;}, false)
 document.addEventListener('keydown', function(event) {
 //console.log('pressed key: ' +event.keyCode);
 Keys[event.keyCode]=true;}, false)
-c.addEventListener("mousedown", function(event){
+function click_event(event){
     Mouse.x=event.clientX,
     Mouse.y=event.clientY,
-    Keys.mouse=true;}, false)
+    Keys.mouse=true;}
+c.addEventListener("mousedown", click_event, false)
 c.addEventListener("mouseup", function(event){
     Keys.mouse=false;}, false)
+c.addEventListener("mouseout", function(event){
+    Keys.mouse=false;}, false)
+//c.addEventListener("touchstart", click_event, false)
+//c.addEventListener("touchend", function(event){    
+//    Keys.mouse=false;}, false)
 
 function newblock(color){
     return {img:block_pics[color], type:color}
@@ -248,7 +263,7 @@ function empty_board(){
 function draw(ctx, o, board){
     //console.log('o: ' +o)
     a=Math.max(0, 1-(board.counter/(board.speed*3)));
-    return ctx.drawImage(o.img, 50*o.p[0], 550-50*(o.p[1]+a));}
+    return ctx.drawImage(o.img, 50*o.p[0], 580-50*(o.p[1]+a));}
 function pause(board){
     handle_key(80, function(){
 	clearscreen(c, ctx);
@@ -262,18 +277,32 @@ function clearscreen(c, ctx){
     ctx.fillStyle = '#444444';
     ctx.fill();
 }
+function wait_till_press(n, f){
+    if(Keys[n]){return f();}
+    setTimeout(function(){
+	wait_till_press(n, f);}, 100);
+}
 function doit(c, ctx){
+    document.getElementById("comment").innerHTML='';    
     board=empty_board();
     var refreshIntervalID = setInterval(function(){
+	if(add_lines>0){
+	    for(i=0;i<add_lines;i++){
+		add_row(board);
+	    }
+	    add_lines=0;
+	};
 	if(board.done){
 	    console.log('clear');
 	    clearInterval(refreshIntervalID);
-	    setTimeout(function(){
+	    document.getElementById("comment").innerHTML='press Z to continue';
+	    wait_till_press(90, function(){
+		console.log('did it');
 		doit(c, ctx);
-	    }, 5000);
+	    });
 	}
 	if(board.counter<0){
-	    board.speed*=.98;
+	    board.speed*=0.99;
 	    board.counter=3*board.speed;
 	    add_row(board);
 	}
